@@ -28,7 +28,7 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 1
  */
 router.post('/apply', upload.single('cv'), async (req, res) => {
   try {
-    const { jobId, whatsappNumber } = req.body;
+    const { jobId, whatsappNumber, email, name } = req.body;
     if (!jobId)    return res.status(400).json({ error: 'jobId is required' });
     if (!req.file) return res.status(400).json({ error: 'CV file is required' });
 
@@ -39,6 +39,8 @@ router.post('/apply', upload.single('cv'), async (req, res) => {
     // 2. Create candidate record immediately
     const candidate = await Candidate.create({
       jobId,
+      name: name || 'Applicant',
+      email: email || null,
       whatsappNumber: whatsappNumber || null,
       cvFileName: req.file.originalname,
       status: 'parsing',
@@ -48,7 +50,7 @@ router.post('/apply', upload.single('cv'), async (req, res) => {
     console.log(`📄 CV received: ${req.file.originalname} for job ${job.title}`);
 
     // 3. Process asynchronously (don't block the response)
-    processCandidate(candidate, req.file, job).catch(err => {
+    processCandidate(candidate, req.file, job, candidate.name).catch(err => {
       console.error(`❌ Processing failed for ${candidate._id}:`, err.message);
     });
 
@@ -68,7 +70,7 @@ router.post('/apply', upload.single('cv'), async (req, res) => {
  * Background processing pipeline:
  * Parse CV → Extract data → Score → Update status → Notify
  */
-async function processCandidate(candidate, file, job) {
+async function processCandidate(candidate, file, job, fallbackName = 'Applicant') {
   try {
     // Step 1: Parse CV text
     console.log(`🔍 Parsing CV for candidate ${candidate._id}...`);
@@ -80,10 +82,10 @@ async function processCandidate(candidate, file, job) {
 
     // Step 2: Extract structured data with Gemini
     console.log(`🧠 Extracting CV data...`);
-    const extracted = await extractCVData(cvText);
-    candidate.name = extracted.name || 'Unknown';
-    candidate.email = extracted.email;
-    candidate.phone = extracted.phone;
+    const extracted = await extractCVData(cvText, fallbackName);
+    candidate.name = extracted.name || fallbackName;
+    candidate.email = extracted.email || candidate.email;
+    candidate.phone = extracted.phone || candidate.phone;
     candidate.extracted = extracted;
     await candidate.save();
 

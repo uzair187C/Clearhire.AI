@@ -206,10 +206,16 @@ export default function App() {
                       <h3>{c.jobId?.title || 'Unknown Job'}</h3>
                       <p>Applied {new Date(c.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <div className="candidate-score">
-                      <div className="number" style={{ color: scoreColor(c.score?.overall) }}>{c.score?.overall || '⏳'}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                      <span className={`status-pill ${c.status}`}>{c.status?.replace(/_/g, ' ')}</span>
+                      {c.score?.overall > 0 ? (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {c.score.overall >= 70 ? '✨ Good fit — HR will contact you' : c.score.overall >= 50 ? '⏳ Under review by HR team' : '❌ Not a match for this role'}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>🤖 AI processing your CV...</div>
+                      )}
                     </div>
-                    <span className={`status-pill ${c.status}`}>{c.status?.replace(/_/g, ' ')}</span>
                   </div>
                 ))}
               </div>

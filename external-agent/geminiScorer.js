@@ -7,16 +7,29 @@ const MODEL = 'llama-3.1-70b-versatile';
 const MOCK_SCORES = [87, 63, 45, 91, 72, 38, 85, 56];
 let mockIndex = 0;
 
-function getMockScore() {
+function getMockScore(cvText) {
+  // Basic fallback protection: if it's obviously not a CV (too short or doesn't mention experience/education)
+  const lowerCv = cvText.toLowerCase();
+  if (cvText.length < 200 || (!lowerCv.includes('experience') && !lowerCv.includes('education') && !lowerCv.includes('skills'))) {
+    return {
+      score: 0,
+      strengths: [],
+      gaps: ['Document does not appear to be a CV/resume.'],
+      recommendation: 'reject',
+      autoAction: 'reject',
+      summary: 'Candidate auto-rejected because the uploaded document is not a valid CV.'
+    };
+  }
+
   const score = MOCK_SCORES[mockIndex % MOCK_SCORES.length];
   mockIndex++;
   let recommendation, strengths, gaps;
 
-  if (score >= 80) {
+  if (score >= 70) {
     recommendation = 'shortlist';
     strengths = ['Strong technical skills matching job requirements', 'Relevant industry experience', 'Solid educational background'];
     gaps = ['Could benefit from more cloud-native experience'];
-  } else if (score >= 60) {
+  } else if (score >= 50) {
     recommendation = 'review';
     strengths = ['Good foundational knowledge', 'Relevant certifications'];
     gaps = ['Below required years of experience', 'Missing key skills from requirements'];
@@ -36,9 +49,9 @@ function getMockScore() {
   };
 }
 
-function getMockExtraction() {
+function getMockExtraction(fallbackName = 'Applicant') {
   return {
-    name: 'Candidate (AI Pending)',
+    name: fallbackName,
     email: 'candidate@example.com',
     phone: '+92 300 0000000',
     skills: ['JavaScript', 'Node.js', 'Express', 'MongoDB'],
@@ -51,20 +64,20 @@ function getMockExtraction() {
 }
 
 /** Retry wrapper — tries Groq, falls back to mock on any error */
-async function withRetry(fn, isScoring = false) {
+async function withRetry(fn, fallbackName = 'Applicant', isScoring = false, cvText = '') {
   try {
     return await fn();
   } catch (err) {
     console.log(`⚠️ Groq API error: ${err.message?.substring(0, 120)}`);
     console.log(`⚠️ Falling back to MOCK AI response for the demo...`);
-    return isScoring ? getMockScore() : getMockExtraction();
+    return isScoring ? getMockScore(cvText) : getMockExtraction(fallbackName);
   }
 }
 
 /**
  * Extract structured data from raw CV text using Groq (Llama 3.1 70B).
  */
-async function extractCVData(cvText) {
+async function extractCVData(cvText, fallbackName = 'Applicant') {
   const prompt = `You are an expert CV/resume parser. Extract structured data from this CV text.
 
 Return ONLY valid JSON (no markdown, no code fences):
@@ -89,11 +102,11 @@ ${cvText.substring(0, 5000)}`;
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
       max_tokens: 1024,
+      response_format: { type: "json_object" }
     });
-    const raw = result.choices[0].message.content.trim()
-      .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const raw = result.choices[0].message.content.trim();
     return JSON.parse(raw);
-  }, false);
+  }, fallbackName, false, cvText);
 }
 
 /**
@@ -108,9 +121,9 @@ async function scoreCandidate(cvText, extractedData, job) {
 CRITICAL: First check if the document is actually a CV/resume. If it is NOT a CV (e.g. assignment, essay, report, random text), score it 0 and set recommendation to "reject" with gap "Document is not a CV/resume".
 
 SCORING GUIDE:
-  80-100  → "shortlist"  (strong match, auto-shortlist)
-  60-79   → "review"     (partial match, HR should review)
-  0-59    → "reject"     (poor match, auto-reject)
+  70-100  → "shortlist"  (strong match, auto-shortlist)
+  50-69   → "review"     (partial match, HR should review)
+  0-49    → "reject"     (poor match, auto-reject)
 
 Weight: skills 40%, experience 25%, education 15%, trajectory 20%.
 
@@ -150,14 +163,14 @@ ${cvText.substring(0, 3000)}`;
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
       max_tokens: 1024,
+      response_format: { type: "json_object" }
     });
-    const raw = result.choices[0].message.content.trim()
-      .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const raw = result.choices[0].message.content.trim();
     const parsed = JSON.parse(raw);
     // Ensure autoAction field exists
     if (!parsed.autoAction) parsed.autoAction = parsed.recommendation;
     return parsed;
-  }, true);
+  }, extractedData.name || 'Applicant', true, cvText);
 }
 
 module.exports = { extractCVData, scoreCandidate };
