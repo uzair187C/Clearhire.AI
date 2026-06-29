@@ -53,7 +53,7 @@ export default function App() {
     avgScore: (() => { const s = candidates.filter(c => c.score?.overall > 0); return s.length ? Math.round(s.reduce((a,c) => a + c.score.overall, 0) / s.length) : 0; })(),
   };
 
-  const scoreColor = s => s >= 80 ? 'var(--green)' : s >= 60 ? 'var(--yellow)' : s > 0 ? 'var(--red)' : 'var(--text-muted)';
+  const scoreColor = s => s >= 70 ? 'var(--green)' : s >= 50 ? 'var(--yellow)' : s > 0 ? 'var(--red)' : 'var(--text-muted)';
   const recClass = r => r === 'shortlist' ? 'shortlist' : r === 'review' ? 'review' : r === 'reject' ? 'reject' : 'pending';
 
   const handleHrLogin = e => {
@@ -297,23 +297,54 @@ export default function App() {
         </div>
 
         {view === 'dashboard' && (<>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
-            <h2 style={{fontSize:'1.1rem',fontWeight:700}}>Recent Candidates</h2>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.75rem'}}>
+            <h2 style={{fontSize:'1.1rem',fontWeight:700}}>Candidates</h2>
             <button className="btn btn-primary" style={{fontSize:'0.8rem'}} onClick={()=>setShowJobForm(true)}>+ New Job</button>
           </div>
+
+          {/* Filter Tabs */}
+          {candidates.length > 0 && (
+            <div style={{display:'flex',gap:'0.5rem',marginBottom:'1rem',flexWrap:'wrap'}}>
+              {[
+                {key:'all',label:`All (${candidates.length})`},
+                {key:'shortlisted',label:`✅ Shortlisted (${candidates.filter(c=>['shortlisted','selected','interview_scheduled'].includes(c.status)).length})`},
+                {key:'under_review',label:`⏳ Review (${candidates.filter(c=>c.status==='under_review').length})`},
+                {key:'rejected',label:`❌ Rejected (${candidates.filter(c=>c.status==='rejected').length})`},
+                {key:'top',label:'🏆 Top Scores'},
+              ].map(tab=>(
+                <button key={tab.key}
+                  className={`nav-btn ${(window._candFilter||'all')===tab.key?'active':''}`}
+                  style={{fontSize:'0.78rem',padding:'0.35rem 0.75rem'}}
+                  onClick={()=>{window._candFilter=tab.key;setView('dashboard');}}
+                >{tab.label}</button>
+              ))}
+            </div>
+          )}
+
           {loading ? <div className="loading-overlay"><div className="spinner"/><p>Loading...</p></div>
           : candidates.length === 0 ? (
             <div className="empty-state"><div className="icon">📋</div><h3>No candidates yet</h3><p>Create a job and share the Candidate Portal.</p><button className="btn btn-primary" style={{marginTop:'1rem'}} onClick={()=>setShowJobForm(true)}>Create Job</button></div>
           ) : (
             <div className="candidates-grid">
-              {candidates.map(c => (
-                <div key={c._id} className="candidate-row" onClick={()=>setSelectedCandidate(c)}>
-                  <div className="candidate-info"><h3>{c.name||'Processing...'}</h3><p>{c.jobId?.title||'Unknown'} · {new Date(c.createdAt).toLocaleDateString()}</p></div>
-                  <div className="candidate-score"><div className="number" style={{color:scoreColor(c.score?.overall)}}>{c.score?.overall||'—'}</div></div>
-                  <span className={`score-badge ${recClass(c.score?.recommendation)}`}>{c.score?.recommendation||'pending'}</span>
-                  <span className={`status-pill ${c.status}`}>{c.status?.replace(/_/g,' ')}</span>
-                </div>
-              ))}
+              {(() => {
+                const filter = window._candFilter || 'all';
+                let filtered = [...candidates];
+                if (filter === 'shortlisted') filtered = filtered.filter(c=>['shortlisted','selected','interview_scheduled'].includes(c.status));
+                else if (filter === 'under_review') filtered = filtered.filter(c=>c.status==='under_review');
+                else if (filter === 'rejected') filtered = filtered.filter(c=>c.status==='rejected');
+                else if (filter === 'top') filtered = filtered.filter(c=>c.score?.overall>0).sort((a,b)=>(b.score?.overall||0)-(a.score?.overall||0));
+
+                if (filtered.length === 0) return <div className="empty-state"><p style={{color:'var(--text-muted)'}}>No candidates in this category</p></div>;
+
+                return filtered.map(c => (
+                  <div key={c._id} className="candidate-row" onClick={()=>setSelectedCandidate(c)}>
+                    <div className="candidate-info"><h3>{c.name||'Processing...'}</h3><p>{c.jobId?.title||'Unknown'} · {new Date(c.createdAt).toLocaleDateString()}</p></div>
+                    <div className="candidate-score"><div className="number" style={{color:scoreColor(c.score?.overall)}}>{c.score?.overall||'—'}</div></div>
+                    <span className={`score-badge ${recClass(c.score?.recommendation)}`}>{c.score?.recommendation||'pending'}</span>
+                    <span className={`status-pill ${c.status}`}>{c.status?.replace(/_/g,' ')}</span>
+                  </div>
+                ));
+              })()}
             </div>
           )}
         </>)}

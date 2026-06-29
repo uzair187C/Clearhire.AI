@@ -105,8 +105,8 @@ async function processCandidate(candidate, file, job) {
       summary: scoreResult.summary
     };
 
-    // Step 5: Route based on score
-    if (scoreResult.score >= 80) {
+    // Step 5: Route based on score (aligned with UiPath BPMN gateway: >= 70)
+    if (scoreResult.score >= 70) {
       candidate.status = 'shortlisted';
       candidate.statusHistory.push({
         status: 'shortlisted', note: `Auto-shortlisted (score: ${scoreResult.score})`
@@ -116,7 +116,7 @@ async function processCandidate(candidate, file, job) {
           name: candidate.name, jobTitle: job.title
         });
       }
-    } else if (scoreResult.score >= 60) {
+    } else if (scoreResult.score >= 50) {
       candidate.status = 'under_review';
       candidate.statusHistory.push({
         status: 'under_review', note: `Sent to HR review (score: ${scoreResult.score})`
