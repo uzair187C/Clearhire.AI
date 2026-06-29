@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
-const API = '/api';
+const API = import.meta.env.PROD
+  ? 'https://clearhire-agent-491138345859.us-central1.run.app/api'
+  : '/api';
 
 export default function JobForm({ onClose, onCreated }) {
   const [form, setForm] = useState({

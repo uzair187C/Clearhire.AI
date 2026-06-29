@@ -125,9 +125,8 @@ const TEMPLATE_MAP = {
 
 async function handleNotify(req, res) {
   try {
-    const { candidateId, date } = req.body;
+    const { candidateId, date, customMessage } = req.body;
     const rawTemplate = req.body.templateName || req.body.template;
-    const template = TEMPLATE_MAP[rawTemplate] || rawTemplate || 'applicationReceived';
 
     const candidate = await Candidate.findById(candidateId).populate('jobId', 'title');
     if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
@@ -135,6 +134,15 @@ async function handleNotify(req, res) {
     const phone = candidate.whatsappNumber || candidate.phone;
     if (!phone) return res.status(400).json({ error: 'No phone number for candidate' });
 
+    // Custom message support
+    if (customMessage || rawTemplate === 'custom') {
+      const { sendWhatsApp } = require('../whatsappNotifier');
+      const result = await sendWhatsApp(phone, customMessage || 'Update from ClearHire');
+      console.log(`📱 Custom msg to ${candidate.name}: "${(customMessage || '').substring(0, 50)}..."`);
+      return res.json({ success: true, messageSent: !!result?.success, ...result });
+    }
+
+    const template = TEMPLATE_MAP[rawTemplate] || rawTemplate || 'applicationReceived';
     const result = await notify(template, phone, {
       name: candidate.name || 'Candidate',
       jobTitle: candidate.jobId?.title || 'the position',

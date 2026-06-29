@@ -1,10 +1,14 @@
 import { useState } from 'react';
 
-const API = '/api';
+const API = import.meta.env.PROD
+  ? 'https://clearhire-agent-491138345859.us-central1.run.app/api'
+  : '/api';
 
-export default function ApplyForm({ jobs, onClose, onApplied }) {
-  const [jobId, setJobId] = useState(jobs[0]?._id || '');
-  const [whatsapp, setWhatsapp] = useState('');
+export default function ApplyForm({ jobs, profile, onClose, onApplied }) {
+  const activeJobs = jobs.filter(j => j.status === 'active');
+  const [jobId, setJobId] = useState(activeJobs[0]?._id || '');
+  const [whatsapp, setWhatsapp] = useState(profile?.phone || '');
+  const [email, setEmail] = useState(profile?.email || '');
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -24,6 +28,7 @@ export default function ApplyForm({ jobs, onClose, onApplied }) {
       fd.append('cv', file);
       fd.append('jobId', jobId);
       if (whatsapp) fd.append('whatsappNumber', whatsapp);
+      if (email) fd.append('email', email);
       const res = await fetch(`${API}/candidates/apply`, { method: 'POST', body: fd });
       if (res.ok) onApplied();
     } catch (err) {
@@ -37,17 +42,17 @@ export default function ApplyForm({ jobs, onClose, onApplied }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Submit Application</h2>
+          <h2>📄 Submit Application</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <form onSubmit={submit}>
           <div className="form-group">
-            <label>Select Job *</label>
-            {jobs.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No jobs available. Create one first.</p>
+            <label>Position *</label>
+            {activeJobs.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No jobs available.</p>
             ) : (
               <select className="form-input form-select" value={jobId} onChange={e => setJobId(e.target.value)}>
-                {jobs.filter(j => j.status === 'active').map(j => (
+                {activeJobs.map(j => (
                   <option key={j._id} value={j._id}>{j.title} — {j.company}</option>
                 ))}
               </select>
@@ -68,14 +73,24 @@ export default function ApplyForm({ jobs, onClose, onApplied }) {
               {file && <div className="filename">✅ {file.name}</div>}
             </div>
           </div>
-          <div className="form-group">
-            <label>WhatsApp Number (optional — for notifications)</label>
-            <input className="form-input" placeholder="+923001234567" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} />
+          <div className="form-row">
+            <div className="form-group">
+              <label>Email (for updates)</label>
+              <input className="form-input" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>WhatsApp Number</label>
+              <input className="form-input" placeholder="+923001234567" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} />
+            </div>
+          </div>
+          {profile && <p style={{ fontSize: '0.78rem', color: 'var(--accent-light)', marginBottom: '1rem' }}>✨ Auto-filled from your saved profile</p>}
+          <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            📱 After submitting, your CV will be scored by AI in seconds. You'll receive status updates via <strong>WhatsApp</strong> at each stage of the process.
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={loading || !file || !jobId}>
-              {loading ? <><div className="spinner" /> Submitting...</> : 'Submit Application'}
+              {loading ? <><div className="spinner" /> Submitting...</> : '🚀 Submit Application'}
             </button>
           </div>
         </form>

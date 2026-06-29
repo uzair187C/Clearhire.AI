@@ -105,6 +105,8 @@ async function scoreCandidate(cvText, extractedData, job) {
 
   const prompt = `You are ClearHire's AI recruiter. Score this candidate 0-100 against the job.
 
+CRITICAL: First check if the document is actually a CV/resume. If it is NOT a CV (e.g. assignment, essay, report, random text), score it 0 and set recommendation to "reject" with gap "Document is not a CV/resume".
+
 SCORING GUIDE:
   80-100  → "shortlist"  (strong match, auto-shortlist)
   60-79   → "review"     (partial match, HR should review)

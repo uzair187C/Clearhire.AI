@@ -1,8 +1,8 @@
 const axios = require('axios');
 
 const WA_API   = 'https://graph.facebook.com/v21.0';
-const PHONE_ID = () => process.env.WA_PHONE_NUMBER_ID;
-const TOKEN    = () => process.env.WA_TOKEN;
+const PHONE_ID = () => process.env.WA_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_ID;
+const TOKEN    = () => process.env.WA_TOKEN || process.env.WHATSAPP_TOKEN;
 
 /**
  * Send a plain-text WhatsApp message.
