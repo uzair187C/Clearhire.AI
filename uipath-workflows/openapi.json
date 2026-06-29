@@ -1,0 +1,214 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ClearHire AI Agent API",
+    "description": "API for ClearHire AI candidate scoring, status updates, and WhatsApp notifications.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://clearhire-agent-491138345859.us-central1.run.app",
+      "description": "Cloud Run Production Server"
+    }
+  ],
+  "paths": {
+    "/api/uipath/score-candidate": {
+      "post": {
+        "summary": "Score Candidate",
+        "operationId": "scoreCandidate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreCandidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful scoring",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreCandidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uipath/update-status": {
+      "post": {
+        "summary": "Update Candidate Status",
+        "operationId": "updateCandidateStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uipath/notify-candidate": {
+      "post": {
+        "summary": "Notify Candidate",
+        "operationId": "notifyCandidate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotifyCandidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notification sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyCandidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ScoreCandidateRequest": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidateId"
+        ]
+      },
+      "ScoreCandidateResponse": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "autoAction": {
+            "type": "string"
+          },
+          "strengths": {
+            "type": "string"
+          },
+          "gaps": {
+            "type": "string"
+          },
+          "whatsappNumber": {
+            "type": "string"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateStatusRequest": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidateId",
+          "status"
+        ]
+      },
+      "UpdateStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "candidateId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "NotifyCandidateRequest": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string"
+          },
+          "templateName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidateId",
+          "templateName"
+        ]
+      },
+      "NotifyCandidateResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "messageSent": {
+            "type": "boolean"
+          },
+          "messageId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
